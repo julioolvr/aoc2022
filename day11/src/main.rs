@@ -44,13 +44,12 @@ fn main() {
         };
 
         let test_line = lines.next().unwrap();
-        let test_value: usize = number_regex
+        let test_divisor: usize = number_regex
             .find(&test_line)
             .unwrap()
             .as_str()
             .parse()
             .expect("Unable to parse test constant");
-        let test = Box::new(move |value: usize| value % test_value == 0);
 
         let target_monkey_true: usize = number_regex
             .find(&lines.next().unwrap())
@@ -69,7 +68,7 @@ fn main() {
             items,
             operation,
             Test {
-                condition: test,
+                divisor: test_divisor,
                 on_true: target_monkey_true,
                 on_false: target_monkey_false,
             },
@@ -78,14 +77,21 @@ fn main() {
         lines.next();
     }
 
-    for _ in 0..20 {
+    let lcm = monkeys
+        .iter()
+        .map(|monkey| monkey.test.divisor)
+        .reduce(|acc, divisor| num::integer::lcm(acc, divisor))
+        .unwrap()
+        * 3;
+
+    for _ in 0..10_000 {
         for i in 0..monkeys.len() {
             let items_count = monkeys[i].items.len();
 
             for _ in 0..items_count {
                 let monkey = &mut monkeys[i];
-                monkey.inspect_next_item();
-                monkey.adjust_worry_levels();
+                monkey.inspect_next_item(lcm);
+                // monkey.adjust_worry_levels();
                 let target_index = monkey.next_target();
                 let item = monkey.throw();
                 monkeys[target_index].give(item);
@@ -99,8 +105,9 @@ fn main() {
         .collect();
     scores.sort();
     scores.reverse();
-    let part_1 = scores[0] * scores[1];
-    println!("Part 1: {}", part_1);
+
+    let part_2 = scores[0] * scores[1];
+    println!("Part 2: {}", part_2);
 }
 
 struct Monkey {
@@ -120,10 +127,10 @@ impl Monkey {
         }
     }
 
-    fn inspect_next_item(&mut self) {
+    fn inspect_next_item(&mut self, lcm: usize) {
         let new_worry = (self.operation)(self.items[0].worry);
         self.inspections_count += 1;
-        self.items[0].worry = new_worry;
+        self.items[0].worry = new_worry % lcm;
     }
 
     fn adjust_worry_levels(&mut self) {
@@ -151,14 +158,14 @@ struct Item {
 }
 
 struct Test {
-    condition: Box<dyn Fn(usize) -> bool>,
+    divisor: usize,
     on_true: usize,
     on_false: usize,
 }
 
 impl Test {
     fn evaluate(&self, worry: usize) -> usize {
-        if (self.condition)(worry) {
+        if worry % self.divisor == 0 {
             self.on_true
         } else {
             self.on_false
