@@ -8,6 +8,8 @@ use regex::Regex;
 fn main() {
     let mut monkeys: Vec<Monkey> = vec![];
 
+    let is_part_1 = env::args().any(|arg| arg == "--part-1");
+
     let mut lines = read_lines()
         .expect("Unable to read file")
         .map(|line| line.expect("Unable to read line"));
@@ -84,14 +86,20 @@ fn main() {
         .unwrap()
         * 3;
 
-    for _ in 0..10_000 {
+    let rounds = if is_part_1 { 20 } else { 10_000 };
+
+    for _ in 0..rounds {
         for i in 0..monkeys.len() {
             let items_count = monkeys[i].items.len();
 
             for _ in 0..items_count {
                 let monkey = &mut monkeys[i];
                 monkey.inspect_next_item(lcm);
-                // monkey.adjust_worry_levels();
+
+                if is_part_1 {
+                    monkey.adjust_worry_levels();
+                }
+
                 let target_index = monkey.next_target();
                 let item = monkey.throw();
                 monkeys[target_index].give(item);
@@ -106,8 +114,9 @@ fn main() {
     scores.sort();
     scores.reverse();
 
-    let part_2 = scores[0] * scores[1];
-    println!("Part 2: {}", part_2);
+    let part = if is_part_1 { 1 } else { 2 };
+    let result = scores[0] * scores[1];
+    println!("Part {}: {}", part, result);
 }
 
 struct Monkey {
