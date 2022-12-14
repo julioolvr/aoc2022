@@ -72,7 +72,8 @@ impl Map {
             .iter()
             .map(|(_, y)| y)
             .max()
-            .expect("Can't build map without any rock");
+            .expect("Can't build map without any rock")
+            + 2;
 
         Map {
             rock,
@@ -85,7 +86,7 @@ impl Map {
         'grain_of_sand: loop {
             let mut sand_position = (500, 0);
 
-            while sand_position.1 < self.bottom {
+            loop {
                 if self.is_free(&(sand_position.0, sand_position.1 + 1)) {
                     sand_position.1 += 1;
                 } else if self.is_free(&(sand_position.0 - 1, sand_position.1 + 1)) {
@@ -96,18 +97,23 @@ impl Map {
                     sand_position.1 += 1;
                 } else {
                     self.sand.insert(sand_position);
+
+                    if sand_position == (500, 0) {
+                        break 'grain_of_sand;
+                    }
+
                     continue 'grain_of_sand;
                 }
             }
-
-            break;
         }
 
         self.sand.len()
     }
 
     fn is_free(&self, coordinates: &(usize, usize)) -> bool {
-        !self.rock.contains(coordinates) && !self.sand.contains(coordinates)
+        coordinates.1 != self.bottom
+            && !self.rock.contains(coordinates)
+            && !self.sand.contains(coordinates)
     }
 }
 
