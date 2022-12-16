@@ -34,20 +34,16 @@ fn main() {
         .count();
     println!("Part 1: {}", part_1);
 
-    let candidate_points = circles
+    let missing_beacon = circles
         .iter()
-        .map(|circle| circle.just_outside_of_range())
-        .reduce(|acc, positions| {
-            acc.union(&positions)
-                .filter(|(x, y)| *x >= 0 && *x <= SIZE && *y >= 0 && *y <= SIZE)
-                .copied()
-                .collect()
+        .flat_map(|circle| circle.just_outside_of_range())
+        .find(|(x, y)| {
+            *x >= 0
+                && *x <= SIZE
+                && *y >= 0
+                && *y <= SIZE
+                && !circles.iter().any(|circle| circle.contains(&(*x, *y)))
         })
-        .unwrap();
-
-    let missing_beacon = candidate_points
-        .iter()
-        .find(|point| !circles.iter().any(|circle| circle.contains(point)))
         .unwrap();
 
     let part_2 = 4_000_000 * missing_beacon.0 + missing_beacon.1;
@@ -83,18 +79,16 @@ impl ManhattanCircle {
         (self.center.0 - x).abs() + (self.center.1 - y).abs() <= self.radius as isize
     }
 
-    fn just_outside_of_range(&self) -> HashSet<(isize, isize)> {
+    fn just_outside_of_range(&self) -> impl Iterator<Item = (isize, isize)> + '_ {
         let distance = self.radius as isize + 1;
-        ((self.center.1 - distance)..=(self.center.1 + distance))
-            .flat_map(|y| {
-                let y_distance = (self.center.1 - y).abs();
+        ((self.center.1 - distance)..=(self.center.1 + distance)).flat_map(move |y| {
+            let y_distance = (self.center.1 - y).abs();
 
-                [
-                    (self.center.0 - distance + y_distance, y),
-                    (self.center.0 + distance - y_distance, y),
-                ]
-            })
-            .collect()
+            [
+                (self.center.0 - distance + y_distance, y),
+                (self.center.0 + distance - y_distance, y),
+            ]
+        })
     }
 }
 
