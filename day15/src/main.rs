@@ -7,6 +7,9 @@ use std::str::FromStr;
 use anyhow::Context;
 use regex::Regex;
 
+const ROW_TO_CHECK: isize = 2_000_000;
+const SIZE: isize = 4_000_000;
+
 fn main() {
     let circles: Vec<ManhattanCircle> = read_lines()
         .expect("Couldn't read file")
@@ -21,13 +24,35 @@ fn main() {
     let to_x = circles.iter().map(|circle| circle.right()).max().unwrap();
     let beacons: HashSet<(isize, isize)> = circles.iter().map(|circle| circle.beacon).collect();
 
-    let y = 2_000_000;
-
     let part_1 = (from_x..=to_x)
-        .filter(|x| !beacons.contains(&(*x, y)))
-        .filter(|x| circles.iter().any(|circle| circle.contains(&(*x, y))))
+        .filter(|x| !beacons.contains(&(*x, ROW_TO_CHECK)))
+        .filter(|x| {
+            circles
+                .iter()
+                .any(|circle| circle.contains(&(*x, ROW_TO_CHECK)))
+        })
         .count();
     println!("Part 1: {}", part_1);
+
+    let candidate_points = circles
+        .iter()
+        .map(|circle| circle.just_outside_of_range())
+        .reduce(|acc, positions| {
+            acc.union(&positions)
+                .filter(|(x, y)| *x >= 0 && *x <= SIZE && *y >= 0 && *y <= SIZE)
+                .copied()
+                .collect()
+        })
+        .unwrap();
+
+    let missing_beacon = candidate_points
+        .iter()
+        .find(|point| !circles.iter().any(|circle| circle.contains(point)))
+        .unwrap();
+
+    let part_2 = 4_000_000 * missing_beacon.0 + missing_beacon.1;
+
+    println!("Part_2: {}", part_2);
 }
 
 #[derive(Debug)]
@@ -56,6 +81,20 @@ impl ManhattanCircle {
 
     fn contains(&self, (x, y): &(isize, isize)) -> bool {
         (self.center.0 - x).abs() + (self.center.1 - y).abs() <= self.radius as isize
+    }
+
+    fn just_outside_of_range(&self) -> HashSet<(isize, isize)> {
+        let distance = self.radius as isize + 1;
+        ((self.center.1 - distance)..=(self.center.1 + distance))
+            .flat_map(|y| {
+                let y_distance = (self.center.1 - y).abs();
+
+                [
+                    (self.center.0 - distance + y_distance, y),
+                    (self.center.0 + distance - y_distance, y),
+                ]
+            })
+            .collect()
     }
 }
 
